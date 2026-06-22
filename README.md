@@ -71,6 +71,20 @@ npx skills@latest add <组织名>/medical-skills
 
 安装过程中，选择要安装的 Skill 和目标 Agent 即可。
 
+## 输入文件要求
+
+这个 Skill 默认处理 **Markdown（.md）格式** 的指南文本。
+
+如果原始资料是 PDF，不建议直接把 PDF 丢给这个 Skill。请先把 PDF 解析成 Markdown，再使用 `medical-guideline-parser-v2`。
+
+推荐流程：
+
+```text
+PDF 指南 → 用 PaddleOCR 等工具解析成 Markdown → 再交给 medical-guideline-parser-v2
+```
+
+这样做的原因是：医学指南里的章节、表格、分级、推荐语和脚注很重要。先转成 Markdown，Agent 更容易看到完整文本结构，也更容易做章节覆盖和实体穷尽检查。
+
 ## 如何使用
 
 在 Agent 里可以这样说：
