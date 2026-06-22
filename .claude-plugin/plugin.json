@@ -1,0 +1,6 @@
+{
+  "name": "medical-skills",
+  "skills": [
+    "./skills/medical-guideline-parser-v2"
+  ]
+}

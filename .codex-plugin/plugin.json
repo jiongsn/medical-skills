@@ -1,0 +1,32 @@
+{
+  "name": "medical-skills",
+  "version": "0.1.0",
+  "description": "Medical agent skills for clinical guideline parsing, clinical logic trees, and entity inventories.",
+  "author": {
+    "name": "22hu"
+  },
+  "license": "MIT",
+  "keywords": [
+    "medical",
+    "guideline",
+    "clinical-logic",
+    "entity-extraction",
+    "skills"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Medical Skills",
+    "shortDescription": "Clinical guideline parsing and medical entity skills.",
+    "longDescription": "Medical Skills bundles agent skills for turning medical source material into reusable clinical logic, entity inventories, and downstream extraction or configuration assets.",
+    "developerName": "22hu",
+    "category": "Productivity",
+    "capabilities": [
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Use medical-guideline-parser-v2 to structure this guideline.",
+      "Build a clinical logic tree and entity inventory from this guideline.",
+      "Check this parser output with the bundled QA script."
+    ]
+  }
+}

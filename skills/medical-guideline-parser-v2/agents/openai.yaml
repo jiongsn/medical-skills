@@ -1,0 +1,7 @@
+interface:
+  display_name: "Medical Guideline Parser v2"
+  short_description: "Clinical logic trees and entity inventories."
+  default_prompt: "Use $medical-guideline-parser-v2 to turn this guideline into clinical logic and an entity inventory."
+
+policy:
+  allow_implicit_invocation: true
