@@ -43,7 +43,21 @@
 medical-skills
 ```
 
-在需要安装 Skill 的电脑上运行：
+最简单的方式：把这个 GitHub 地址发给支持安装 Skill 的 Agent：
+
+```text
+https://github.com/jiongsn/medical-skills
+```
+
+可以直接对 Agent 说：
+
+```text
+请帮我安装这个 GitHub 仓库里的 Skill：https://github.com/jiongsn/medical-skills
+```
+
+如果对方的 Agent 支持安装 Skill，通常会自动识别仓库并完成安装；如果 Agent 只能聊天、不能操作本机环境，就需要改用下面的命令。
+
+备用命令：
 
 ```bash
 npx skills@latest add jiongsn/medical-skills
