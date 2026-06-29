@@ -1,6 +1,7 @@
 {
   "name": "medical-skills",
   "skills": [
+    "./skills/medical-guideline-ocr-mermaid",
     "./skills/medical-guideline-parser-v2"
   ]
 }

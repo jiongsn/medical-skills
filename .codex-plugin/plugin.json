@@ -1,7 +1,7 @@
 {
   "name": "medical-skills",
   "version": "0.1.0",
-  "description": "Medical agent skills for clinical guideline parsing, clinical logic trees, and entity inventories.",
+  "description": "面向医学资料解析的 Agent Skills，用于从 PDF 指南生成 Mermaid Markdown、医学指南结构化、临床逻辑树和实体清单。",
   "author": {
     "name": "22hu"
   },
@@ -16,17 +16,18 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Medical Skills",
-    "shortDescription": "Clinical guideline parsing and medical entity skills.",
-    "longDescription": "Medical Skills bundles agent skills for turning medical source material into reusable clinical logic, entity inventories, and downstream extraction or configuration assets.",
+    "shortDescription": "PDF 指南转 Mermaid Markdown、医学指南解析和临床实体整理。",
+    "longDescription": "Medical Skills 用于把医学来源资料整理成可复用的临床逻辑和实体清单，并支持从 PDF 开始调用 PaddleOCR-VL，再用 VLM 把指南图片转换为 Mermaid，最终输出 Markdown。",
     "developerName": "22hu",
     "category": "Productivity",
     "capabilities": [
       "Write"
     ],
     "defaultPrompt": [
-      "Use medical-guideline-parser-v2 to structure this guideline.",
-      "Build a clinical logic tree and entity inventory from this guideline.",
-      "Check this parser output with the bundled QA script."
+      "使用 medical-guideline-ocr-mermaid，处理这份 PDF：如果还没有 PaddleOCR API_URL 和 TOKEN，先告诉我打开 https://aistudio.baidu.com/paddleocr/task，在 API 调用示例中获取；如果团队已预置 API_URL，则只需要提供 TOKEN。",
+      "使用 medical-guideline-ocr-mermaid，把这份 PaddleOCR Markdown 里的图片流程图转换成 Mermaid，并保留正文和表格。",
+      "使用 medical-guideline-parser-v2，把这份指南整理成结构化诊疗逻辑。",
+      "从这份指南中整理临床逻辑树和实体清单。"
     ]
   }
 }
