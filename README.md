@@ -204,7 +204,7 @@ Skill 运行到最后，会询问是否继续交给下游 Skill 生成疾病配�
 python3 skills/medical-guideline-ocr-mermaid/scripts/guideline_ocr_mermaid.py validate --markdown path/to/final.md --expected-mermaid-count <图片数量>
 ```
 
-这个脚本会检查最终 Markdown 里剩余的图片引用、Mermaid 数量和 Markdown 代码块是否闭合。
+这个脚本会检查最终 Markdown 里剩余的图片引用、Mermaid 数量、Markdown 代码块是否闭合，以及常见 Mermaid 不可渲染语法，例如未转义的 `<`/`>`、错误边标签、无 id 的 `[unreadable]`、样式语法和 subgraph。
 
 如果使用 `medical-guideline-parser-v2`，可以运行：
 

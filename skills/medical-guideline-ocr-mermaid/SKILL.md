@@ -44,13 +44,13 @@ python3 <skill-dir>/scripts/guideline_ocr_mermaid.py from-pdf \
 
 ```json
 {
-  "image_001": "flowchart LR\n    A[\"Start\"] --> B[\"Action\"]"
+  "image_001": "flowchart LR\n    A[\"Start\"] -->|Yes| B[\"Action &lt;20 g/l\"]"
 }
 ```
 
 JSON 值里不要写 Markdown 代码围栏；回填脚本会自动加上 Mermaid 代码块。
 
-第 2 步完成标准：`image_manifest.json` 里的每个图片 id 都有对应 Mermaid 源码。如果图片确实无法可靠识别，最终报告中列出图片 id；不要猜测补全。
+第 2 步完成标准：`image_manifest.json` 里的每个图片 id 都有对应 Mermaid 源码，并且满足 [图片转 Mermaid 提示词](references/figure-to-mermaid.md) 的可渲染规则。特别注意：`<` 和 `>` 必须转义；带文字的边必须写成 `A -->|label| B`；`[unreadable]` 必须是带 id 的节点；不要使用 `classDef`、`style`、`subgraph` 等样式或分组语法。
 
 ### 3. 回填并输出最终 Markdown
 
@@ -63,7 +63,7 @@ python3 <skill-dir>/scripts/guideline_ocr_mermaid.py finalize \
 
 `finalize` 会读取 `workflow_state.json`，把 Mermaid 回填到 OCR Markdown 的原图片位置，并输出最终 Markdown。
 
-第 3 步完成标准：脚本返回 `PASS`，最终 Markdown 中图片引用为 0，Mermaid 数量等于原图片数量。
+第 3 步完成标准：脚本返回 `PASS`，最终 Markdown 中图片引用为 0，Mermaid 数量等于原图片数量，并且 Mermaid lint 没有发现不可渲染语法。若 `finalize` 失败，必须先修正 `mermaid_map.json`，不要交付失败时产生的中间文件。
 
 ## 已有 PaddleOCR Markdown 的快捷流程
 

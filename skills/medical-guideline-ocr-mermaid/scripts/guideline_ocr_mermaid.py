@@ -31,17 +31,19 @@ MD_IMG_RE = re.compile(r'!\[[^\]]*\]\(([^)]+)\)')
 MERMAID_FENCE_RE = re.compile(r'```mermaid\s*\n.*?\n```', re.DOTALL)
 PLACEHOLDER_RE = re.compile(r'TODO_MERMAID|\[unconverted\]', re.IGNORECASE)
 
-VLM_PROMPT = """请把这张医学指南图片转换为 Mermaid。
+VLM_PROMPT = """请把这张医学指南图片转换为可渲染的 Mermaid flowchart。
 
-规则：
-1. 只使用图片中可见的文字和可见结构。
-2. 尽量保留原图中的英文术语、阈值、符号、脚注标记和药物名称。
-3. 不要添加图片中没有出现的医学解释、翻译、建议或推荐意见。
-4. 只输出一段 Mermaid 源码，不要输出 Markdown 代码围栏。
-5. 垂直决策树、算法图和风险分层优先使用 flowchart TB；左右路径图优先使用 flowchart LR。
-6. 节点内换行和项目列表使用 <br/>。
-7. 标签中的比较符号按需要转义为 &lt; 和 &gt;。
-8. 如果局部文字无法辨认，只在该片段标记 [unreadable]，不要猜测。
+必须遵守：
+1. 只输出 Mermaid 源码，不要输出 Markdown 代码围栏。
+2. 第一行只能是 flowchart TB 或 flowchart LR。
+3. 节点 id 只能使用 ASCII 字母、数字和下划线，例如 A、B、N01、Decision_1；id 里不要有空格、连字符、中文、单位或标点。
+4. 每个节点必须写成 ID["label"] 或判断节点 ID{"label"}，长文本也要放进带引号的 label。
+5. 节点内换行使用 <br/>。
+6. label 中的 < 和 > 必须写成 &lt; 和 &gt;，例如 &lt;20 g/l；不要直接写 <20 g/l。
+7. 带文字的边必须写成 A -->|Yes| B；不要写 A --|Yes| B，也不要让边指向没有 id 的 [unreadable]。
+8. 无法识别的内容写成一个正常节点，例如 U01["[unreadable]"]，再连到这个节点。
+9. 不要使用 classDef、class、style、click、subgraph 或 HTML 标签；唯一允许的 HTML 片段是 <br/>。
+10. 保留图片中可见的英文术语、阈值、符号、脚注标记和药物名称；不要添加图片中没有出现的医学解释、翻译、建议或推荐意见。
 """
 
 
@@ -495,13 +497,14 @@ def command_apply(args: argparse.Namespace) -> int:
         print("FAIL: 缺少 Mermaid：" + ", ".join(missing), file=sys.stderr)
         return 1
     out_path = Path(args.output)
-    write_text(out_path, text)
     expected = replaced if args.allow_missing else int(manifest.get("image_count", replaced))
     ok, messages = validate_markdown(text, expected_mermaid_count=expected)
     for message in messages:
         print(message)
     if not ok:
+        print(f"FAIL: Mermaid 校验未通过，未写出最终文件：{out_path}", file=sys.stderr)
         return 1
+    write_text(out_path, text)
     print(f"PASS: 已在 {out_path} 中替换 {replaced} 个图片块")
     return 0
 
@@ -535,12 +538,72 @@ def command_finalize(args: argparse.Namespace) -> int:
     print(f"PASS: 最终 Markdown 已输出：{output}")
     return 0
 
+MERMAID_START_RE = re.compile(r"^(flowchart|graph)\s+(TB|TD|BT|LR|RL)\s*$")
+MERMAID_BAD_PIPE_EDGE_RE = re.compile(r"--\|[^|\n]+\|")
+MERMAID_ANON_TARGET_RE = re.compile(r"(?:-->|--[^\n-]+-->)\s*\[[^\]]+\]")
+MERMAID_FORBIDDEN_STYLE_RE = re.compile(r"(^|\s)(classDef|class\s+|style\s+|click\s+)|:::")
+MERMAID_LABEL_RE = re.compile(r"\[[^\]\n]*\]|\{[^}\n]*\}|\([^)\n]*\)")
+MERMAID_PIPE_LABEL_RE = re.compile(r"\|([^|\n]+)\|")
+
+
+def _has_raw_angle(label: str) -> bool:
+    cleaned = label.replace("<br/>", "").replace("<br>", "")
+    cleaned = cleaned.replace("&lt;", "").replace("&gt;", "")
+    return "<" in cleaned or ">" in cleaned
+
+
+def lint_mermaid_code(code: str, block_no: int) -> List[str]:
+    messages: List[str] = []
+    lines = code.splitlines()
+    nonempty = [(idx + 1, line.strip()) for idx, line in enumerate(lines) if line.strip()]
+    if not nonempty:
+        return [f"FAIL: Mermaid block {block_no}: 空代码块"]
+    first_line_no, first = nonempty[0]
+    if not MERMAID_START_RE.match(first):
+        messages.append(
+            f"FAIL: Mermaid block {block_no} line {first_line_no}: 第一行必须是 flowchart/graph + 方向，例如 flowchart TB"
+        )
+    if first.startswith("flowchart") and first not in {"flowchart TB", "flowchart LR", "flowchart TD", "flowchart BT", "flowchart RL"}:
+        messages.append(f"FAIL: Mermaid block {block_no} line {first_line_no}: flowchart 方向不规范：{first}")
+
+    subgraph_ids = set()
+    for idx, line in enumerate(lines, 1):
+        stripped = line.strip()
+        if not stripped or stripped.startswith("%%"):
+            continue
+        if "```" in stripped:
+            messages.append(f"FAIL: Mermaid block {block_no} line {idx}: Mermaid 源码中不能包含 Markdown 代码围栏")
+        m = re.match(r"subgraph\s+([A-Za-z][A-Za-z0-9_]*)\b", stripped)
+        if m:
+            subgraph_ids.add(m.group(1))
+            messages.append(f"FAIL: Mermaid block {block_no} line {idx}: 为保证兼容渲染，不要使用 subgraph")
+        if MERMAID_FORBIDDEN_STYLE_RE.search(stripped):
+            messages.append(f"FAIL: Mermaid block {block_no} line {idx}: 不要使用 classDef/class/style/click/::: 样式语法")
+        if MERMAID_BAD_PIPE_EDGE_RE.search(stripped):
+            messages.append(f"FAIL: Mermaid block {block_no} line {idx}: 边标签应写成 A -->|label| B，不能写 A --|label| B")
+        if MERMAID_ANON_TARGET_RE.search(stripped):
+            messages.append(f"FAIL: Mermaid block {block_no} line {idx}: 边不能指向无 id 的 [label]，请写成 U01[\"label\"] 后再连接")
+        for sg in sorted(subgraph_ids):
+            if re.search(rf"(^|\s){re.escape(sg)}\s*-->", stripped) or re.search(rf"-->\s*{re.escape(sg)}(\s|$)", stripped):
+                messages.append(f"FAIL: Mermaid block {block_no} line {idx}: 不要连接 subgraph id `{sg}`，请连接普通节点")
+        for label_match in MERMAID_LABEL_RE.finditer(stripped):
+            label = label_match.group(0)
+            if _has_raw_angle(label):
+                messages.append(f"FAIL: Mermaid block {block_no} line {idx}: label 中的 < 或 > 必须转义为 &lt; 或 &gt;")
+        for pipe_match in MERMAID_PIPE_LABEL_RE.finditer(stripped):
+            label = pipe_match.group(1)
+            if _has_raw_angle(label):
+                messages.append(f"FAIL: Mermaid block {block_no} line {idx}: 边标签中的 < 或 > 必须转义为 &lt; 或 &gt;")
+    return messages
+
+
 def validate_markdown(text: str, expected_mermaid_count: Optional[int] = None) -> Tuple[bool, List[str]]:
     messages: List[str] = []
     ok = True
     html_imgs = len(IMG_TAG_RE.findall(text))
     md_imgs = len(MD_IMG_RE.findall(text))
-    mermaid = len(MERMAID_FENCE_RE.findall(text))
+    mermaid_blocks = list(MERMAID_FENCE_RE.finditer(text))
+    mermaid = len(mermaid_blocks)
     fence_count = text.count("```")
     messages.append(f"image_tags={html_imgs + md_imgs} html_img={html_imgs} markdown_img={md_imgs}")
     messages.append(f"mermaid_blocks={mermaid}")
@@ -558,6 +621,15 @@ def validate_markdown(text: str, expected_mermaid_count: Optional[int] = None) -
     if PLACEHOLDER_RE.search(text):
         ok = False
         messages.append("FAIL: 仍有未解决的 Mermaid 占位符")
+    lint_messages: List[str] = []
+    for idx, match in enumerate(mermaid_blocks, 1):
+        lint_messages.extend(lint_mermaid_code(match.group(0).split("\n", 1)[1].rsplit("\n```", 1)[0], idx))
+    if lint_messages:
+        ok = False
+        messages.append(f"mermaid_lint_failures={len(lint_messages)}")
+        messages.extend(lint_messages[:80])
+        if len(lint_messages) > 80:
+            messages.append(f"FAIL: 还有 {len(lint_messages) - 80} 条 Mermaid lint 问题未显示")
     if ok:
         messages.append("PASS")
     return ok, messages
