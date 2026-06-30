@@ -14,7 +14,7 @@
 
 - 手里是 PDF 指南，希望最终得到一个正文、表格和 Mermaid 图都在同一个文件里的 Markdown。
 - PaddleOCR 可以解析文字和表格，但指南里的流程图、算法图仍然需要 VLM 读取。
-- 希望医学同事后续审阅的是可复制、可编辑的 Mermaid 流程图。
+- 希望后续审阅的是可复制、可编辑的 Mermaid 流程图。
 - 同一份指南有多个 OCR 版本，需要保留文字/表格更好的版本，只替换图片位置。
 
 推荐流程：
@@ -84,12 +84,6 @@ https://github.com/jiongsn/medical-skills
 npx skills@latest add jiongsn/medical-skills
 ```
 
-如果这个仓库以后放在组织账号下，把 `jiongsn` 换成组织名即可：
-
-```bash
-npx skills@latest add <组织名>/medical-skills
-```
-
 安装过程中，选择要安装的 Skill 和目标 Agent 即可。
 
 ## 输入文件要求
@@ -101,28 +95,29 @@ npx skills@latest add <组织名>/medical-skills
 
 ### PaddleOCR API 怎么获取
 
-同事只需要记住这个固定入口：`https://aistudio.baidu.com/paddleocr/task`。
+只需要记住这个固定入口：`https://aistudio.baidu.com/paddleocr/task`。
 
 需要说明清楚的是：官方文档没有给一个所有人通用、可以永久写死的完整 `API_URL`；官方示例写的是 `API_URL = "<your url>"`，并说明 `API_URL` 和 `TOKEN` 都要从 PaddleOCR 官网任务页的 **API 调用示例** 中获取。文档固定的是接口操作路径 `POST /layout-parsing`，完整调用 URL 仍以任务页生成的示例为准。
 
-给同事的操作步骤：
+具体操作步骤：
 
 1. 打开 PaddleOCR 官网任务页：`https://aistudio.baidu.com/paddleocr/task`。
 2. 登录百度/AI Studio 账号；如果页面要求实名认证或开通服务，按页面提示完成。
 3. 进入 PaddleOCR API 或 PaddleOCR-VL 的 **API 调用示例**。
 4. 复制调用示例中的 `API_URL` 和 `TOKEN`。
-5. 不要把 `TOKEN` 写进共享文档，也不要发到多人群里；只在本机环境变量、私密凭据管理器或私密对话里提供。
 
-推荐填法：在运行 Agent 的终端里设置环境变量：
+推荐填法：直接把获取的API URL和TOKEN发给agent即可。
+
+填法2:如果不会设置环境变量，可以直接告诉 Agent
+
+```text
+我已经打开 https://aistudio.baidu.com/paddleocr/task，并从 API 调用示例里拿到了 API_URL 和 TOKEN。请使用 medical-guideline-ocr-mermaid 处理这个 PDF；如果你需要，我会在私密对话里提供 API_URL 和 TOKEN。
+```
+
+备用填法：在运行 Agent 的终端里设置环境变量：
 
 ```bash
 export PADDLEOCR_API_URL="从 PaddleOCR API 调用示例复制的 API_URL"
-export PADDLEOCR_TOKEN="从 PaddleOCR API 调用示例复制的 TOKEN"
-```
-
-如果团队里确认所有同事使用同一个 `API_URL`，可以由管理员或你先在每台机器上预置 `PADDLEOCR_API_URL`。这样同事日常只需要提供 `PADDLEOCR_TOKEN`：
-
-```bash
 export PADDLEOCR_TOKEN="从 PaddleOCR API 调用示例复制的 TOKEN"
 ```
 
@@ -134,12 +129,6 @@ python3 skills/medical-guideline-ocr-mermaid/scripts/guideline_ocr_mermaid.py fr
   --work-dir guideline_ocr_mermaid_work \
   --api-url "从 PaddleOCR API 调用示例复制的 API_URL" \
   --token "从 PaddleOCR API 调用示例复制的 TOKEN"
-```
-
-如果同事不会设置环境变量，可以直接告诉 Agent：
-
-```text
-我已经打开 https://aistudio.baidu.com/paddleocr/task，并从 API 调用示例里拿到了 API_URL 和 TOKEN。请使用 medical-guideline-ocr-mermaid 处理这个 PDF；如果你需要，我会在私密对话里提供 API_URL 和 TOKEN。
 ```
 
 `medical-guideline-parser-v2` 默认输入是 **Markdown（.md）格式** 的指南文本。如果原始资料是 PDF，建议先用 `medical-guideline-ocr-mermaid` 生成最终 Markdown，再交给 `medical-guideline-parser-v2`。
@@ -196,7 +185,7 @@ Skill 运行到最后，会询问是否继续交给下游 Skill 生成疾病配�
 
 ## 质量检查
 
-仓库里带了检查脚本。正常使用时，Agent 应该在输出最终结果前自动运行，不需要医学同事手动执行。
+仓库里带了检查脚本。正常使用时，Agent 应该在输出最终结果前自动运行，不需要手动执行。
 
 如果使用 `medical-guideline-ocr-mermaid`，最后应检查图片是否已经被 Mermaid 替换：
 
